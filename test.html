@@ -1,19 +1,188 @@
+<!DOCTYPE html>
 <html>
-  <head>
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css"
-    />
+ 
+
+<head>
+       
+    <meta charset="utf-8" />
+       
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>TomTom Map - Satellite & Normal View with Click Marker</title>
+
+           
+    <link       rel="stylesheet"       type="text/css"      
+        href="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css"     />
+
+            <style>
+        body {
+            width: 100%;
+            height: 100vh;
+            /* Use vh for full viewport height */
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            /* Prevent body scroll if map is full screen */
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        #map-controls {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            /* Slightly transparent background */
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            /* Ensure controls are above the map */
+            display: flex;
+            gap: 10px;
+        }
+
+        #map-controls button {
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background-color: #f9f9f9;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+            /* Smooth transitions */
+        }
+
+        #map-controls button:hover {
+            background-color: #e9e9e9;
+        }
+
+        #map-controls button.active {
+            background-color: #007bff;
+            /* TomTom blue */
+            color: white;
+            border-color: #007bff;
+        }
+    </style>
+     
+</head>
+ 
+
+<body>
+            <div id="map"></div>
+
+            <div id="map-controls">
+              <button id="satelliteBtn" class="active">Satellite View</button>
+              <button id="normalBtn">Normal View</button>
+            </div>
+
+           
     <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-web.min.js"></script>
-  </head>
-  <body style="width: 100%; height: 100%; margin: 0; padding: 0;">
-    <div id="map" style="width: 100%; height: 100%;"></div>
+
+       
     <script>
-      var map = tt.map({
-        key: "HTMShqWeQDrqDMc1rzEaID0gALtwLqi3",
-        container: "map",
-      })
+        // ##########################################################################
+        // !!! IMPORTANT: PLEASE REPLACE "HTMShqWeQDrqDMc1rzEaID0gALtwLqi3"
+        // !!! WITH YOUR OWN VALID TOMTOM API KEY FROM developer.tomtom.com
+        // ##########################################################################
+        var API_KEY = "HTMShqWeQDrqDMc1rzEaID0gALtwLqi3"; // <--- REPLACE THIS LINE
+
+        // Coordinates for Gandhinagar, Gujarat, India (approximate center)
+        var gandhinagarCenter = [72.647781, 23.237560];
+
+        // Setting a zoom level for initial load
+        var initialZoom = 15;
+
+        // Define the style URLs for both views
+        var satelliteStyle = `https://api.tomtom.com/style/1/style/*?map=2/basic_street-satellite&poi=2/poi_dynamic-satellite&3d_buildings=2/3d_buildings-day&key=${API_KEY}`;
+
+        // The explicit 'main.json' TomTom map style for a clear vector street map.
+        var normalStyle = `https://api.tomtom.com/style/1/style/22.2.1-0/main.json?key=${API_KEY}`;
+
+
+        // Initialize the map
+        var map = tt.map({
+            key: API_KEY,
+            container: "map",
+            style: satelliteStyle, // Start with satellite view by default
+            center: gandhinagarCenter,
+            zoom: initialZoom,
+        });
+
+        // Add navigation controls (zoom in/out buttons) to the top-left
+        map.addControl(new tt.NavigationControl(), 'top-left');
+
+        // Optional: Event listener for when the map finishes loading
+        map.on('load', function () {
+            console.log('Map loaded successfully!');
+            console.log('Current Zoom Level:', map.getZoom());
+        });
+
+        // ##############################################################
+        // NEW CODE FOR CLICK EVENT WITH MARKER
+        // ##############################################################
+        var currentMarker = null; // Variable to store the currently displayed marker
+
+        map.on('click', function (e) {
+            var clickedLongitude = e.lngLat.lng;
+            var clickedLatitude = e.lngLat.lat;
+
+            console.log(`Map Clicked At:`);
+            console.log(`  Longitude: ${clickedLongitude}`);
+            console.log(`  Latitude: ${clickedLatitude}`);
+
+            // 1. Remove existing marker if any
+            if (currentMarker !== null) {
+                currentMarker.remove();
+            }
+
+            // 2. Create a new marker at the clicked location
+            // You can customize the marker with options if you like (e.g., color, popup)
+            currentMarker = new tt.Marker()
+                .setLngLat([clickedLongitude, clickedLatitude])
+                .addTo(map);
+        });
+        // ##############################################################
+
+
+        // Get button elements by their IDs
+        var satelliteBtn = document.getElementById('satelliteBtn');
+        var normalBtn = document.getElementById('normalBtn');
+
+        // Function to update the visual "active" state of the buttons
+        function updateActiveButton(activeButtonElement) {
+            // Remove 'active' class from both buttons
+            satelliteBtn.classList.remove('active');
+            normalBtn.classList.remove('active');
+            // Add 'active' class to the clicked button
+            activeButtonElement.classList.add('active');
+        }
+
+        // Event listener for the Satellite View button
+        satelliteBtn.addEventListener('click', function () {
+            // Only change style if it's not already the satellite style
+            if (map.getStyle().url !== satelliteStyle) {
+                map.setStyle(satelliteStyle); // Set map style to satellite
+                updateActiveButton(satelliteBtn); // Update button styling
+                console.log('Switched to Satellite View');
+            }
+        });
+
+        // Event listener for the Normal View button
+        normalBtn.addEventListener('click', function () {
+            // Only change style if it's not already the normal style
+            if (map.getStyle().url !== normalStyle) {
+                map.setStyle(normalStyle); // Set map style to normal street map
+                updateActiveButton(normalBtn); // Update button styling
+                console.log('Switched to Normal View');
+            }
+        });
+
     </script>
-  </body>
+     
+</body>
+
 </html>
